@@ -1,0 +1,76 @@
+require 'optparse'
+class WC
+    # 合計の ファイル数、行数、単語数、バイト数 をカウントするための宣言
+    @@fileCnt = 0
+    @@sumWords = 0
+    @@sumLine = 0
+    @@sumByte = 0
+
+    # オプション判定
+    def initialize
+        op = OptionParser.new
+        op.on ('-w') {|b| @words_flg = true }
+        op.on ('-l') {|b| @lines_flg = true }
+        op.on ('-c') {|b| @bytes_flg = true }
+        op.parse!(ARGV)
+
+    end
+
+    # wcコマンド
+    def wc(filename, size)
+        words = [] # ファイル内の単語を入れる
+        lineCnt = 0 # 行数をカウントする
+        byte = 0 #バイト数をカウントする
+        # ファイル読み込み
+        File.open(filename, encoding: "utf-8") do |f|
+            f.each_line do |line| # 1行ずつ
+                line.split.each do |is_word| # 1単語ずつ
+                    if is_word =~ /[\w\-]+?/ then # 英数字_- にマッチしたら
+                        words.push(is_word) # words配列に追加
+                        byte += is_word.bytesize # バイト数
+                    end
+                end
+                lineCnt += 1 # 行数
+            end
+        end
+
+        wordsize = words.size # 単語数
+
+        # 1ファイルの結果出力
+        print "#{lineCnt} " if @lines_flg # -l
+        print "#{wordsize} " if @words_flg # -w
+        print "#{byte} " if @bytes_flg # -c
+        print "#{lineCnt} #{wordsize} #{byte} " if !@lines_flg && !@words_flg && !@bytes_flg #オプションなし
+        puts filename
+        
+        # 合計の ファイル数、行数、単語数、バイト数 をカウント
+        @@fileCnt += 1
+        @@sumLine += lineCnt
+        @@sumWords += wordsize
+        @@sumByte += byte
+
+        # 最後にtotalを出力する。現在のファイル数 と 引数のファイル数 を比較。
+        if @@fileCnt == size && size > 1 then 
+            print "#{@@sumLine} " if @lines_flg # -l
+            print "#{@@sumWords} " if @words_flg # -w
+            print "#{@@sumByte} " if @bytes_flg # -c
+            print "#{@@sumLine} #{@@sumWords} #{@@sumByte} " if !@lines_flg && !@words_flg && !@bytes_flg # オプションなし
+            puts "total"
+        end
+    end
+end
+
+
+option = WC.new
+filenames = ARGF.argv
+fileSize = filenames.size
+
+filenames.each do |f|
+    option.wc(f, fileSize) # 引数は、1つファイル名 と 総ファイル数
+end
+
+
+# 実行の仕方
+# ruby wc.rb ファイル名
+# ruby wc.rb オプション ファイル名
+# ruby wc.rb ファイル名　オプション
